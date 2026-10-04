@@ -1,5 +1,7 @@
 #include "builder_client.h"
 #include "vr.h"
+#include "game.h"
+#include "sdk/trace.h"
 
 #include <Windows.h>
 #include <winhttp.h>
@@ -20,15 +22,32 @@ bool BuilderClient::ResolvePointer(float maxDistance, float& x, float& y, float&
     if (!m_VR)
         return false;
 
-    // Phase 1 fallback: controller tip projected along its forward vector.
-    // The integration patch replaces this with a Source engine trace so walls,
-    // floors and props become exact hit points.
+    if (!m_VR->m_Game || !m_VR->m_Game->m_EngineTrace)
+        return false;
+
     const Vector origin = m_VR->m_RightControllerPosAbs;
     const Vector forward = m_VR->m_RightControllerForward;
+    const Vector end = origin + forward * maxDistance;
 
-    x = origin.x + forward.x * maxDistance;
-    y = origin.y + forward.y * maxDistance;
-    z = origin.z + forward.z * maxDistance;
+    Ray_t ray;
+    ray.Init(origin, end);
+
+    // The existing L4D2VR SDK already exposes EngineTraceClient003 and the
+    // CTraceFilter used elsewhere by Source-style client traces.
+    CTraceFilter filter(nullptr, 0);
+    trace_t trace{};
+    m_VR->m_Game->m_EngineTrace->TraceRay(
+        ray,
+        MASK_STATICWORLD | CONTENTS_MOVEABLE,
+        &filter,
+        &trace);
+
+    if (!trace.DidHit() || trace.startsolid || trace.allsolid)
+        return false;
+
+    x = trace.endpos.x;
+    y = trace.endpos.y;
+    z = trace.endpos.z;
     return true;
 }
 
