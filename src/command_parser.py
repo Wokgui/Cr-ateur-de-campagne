@@ -110,12 +110,18 @@ def apply_command(
         })
         return result
 
-    if any(word in text for word in ("voiture", "car")):
+    prop_words = ("voiture", "car", "ambulance", "camion", "etagere", "chaise", "table", "lit", "poubelle", "barriere")
+    if any(word in text for word in prop_words):
+        match = resolve_asset(text, assets or [], "model") if assets else None
+        fallback = "models/props_vehicles/cara_82hatchback.mdl" if any(word in text for word in ("voiture", "car")) else None
+        if not match and not fallback:
+            raise ValueError("Aucun asset L4D2 correspondant dans le catalogue")
         result.setdefault("props", []).append({
             "id": _id("prop"),
             "origin": p,
             "angles": "0 0 0",
-            "model": "models/props_vehicles/cara_82hatchback.mdl",
+            "model": match["path"] if match else fallback,
+            "asset_source": match.get("source") if match else "builtin-fallback",
         })
         return result
 
