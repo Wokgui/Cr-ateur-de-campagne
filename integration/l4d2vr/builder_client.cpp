@@ -43,7 +43,7 @@ bool BuilderClient::ResolvePointer(float maxDistance, float& x, float& y, float&
         &filter,
         &trace);
 
-    if (!trace.DidHit() || trace.startsolid || trace.allsolid)
+    if (trace.fraction <= 0.0f || trace.fraction >= 1.0f || trace.startsolid || trace.allsolid)
         return false;
 
     x = trace.endpos.x;
