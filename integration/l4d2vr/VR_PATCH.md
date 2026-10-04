@@ -92,10 +92,17 @@ if (m_Builder && m_Builder->IsEnabled())
 
 ## Action sets
 
-`UpdateActionState` doit recevoir l'action set Builder en plus de l'action set
-principal. Il est préférable de désactiver/prioriser le set principal lorsque
-Builder est actif afin qu'une pression de placement ne déclenche pas simultanément
-un tir.
+Dans `UpdatePosesAndActions`, remplacer l'appel actuel par :
+
+```cpp
+vr::VRActiveActionSet_t sets[2] = { m_ActiveActionSet, m_BuilderActiveActionSet };
+sets[0].nPriority = (m_Builder && m_Builder->IsEnabled()) ? 0 : 1;
+sets[1].nPriority = (m_Builder && m_Builder->IsEnabled()) ? 2 : 0;
+m_Input->UpdateActionState(sets, sizeof(vr::VRActiveActionSet_t), 2);
+```
+
+Le set Builder devient donc prioritaire pendant l'édition et le jeu normal reste
+prioritaire hors édition.
 
 ## Pointeur
 
