@@ -56,7 +56,8 @@ def make_handler(state: State):
                 data = json.loads(self.rfile.read(length) or b"{}")
                 command = str(data["command"])
                 pointer = data.get("pointer", [0, 0, 0])
-                state.scene = apply_command(state.scene, command, pointer)
+                selected_id = data.get("selected_id")
+                state.scene = apply_command(state.scene, command, pointer, selected_id)
                 state.save()
                 self._json(200, {"ok": True, "scene": state.scene})
             except (KeyError, ValueError, json.JSONDecodeError) as exc:
