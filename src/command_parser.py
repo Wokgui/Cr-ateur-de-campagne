@@ -47,6 +47,7 @@ def apply_command(
     command: str,
     pointer: list[float] | None = None,
     selected_id: str | None = None,
+    assets: list[dict] | None = None,
 ) -> dict:
     """Apply a deterministic VR building command.
 
