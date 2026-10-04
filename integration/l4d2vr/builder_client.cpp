@@ -35,10 +35,10 @@ bool BuilderClient::ResolvePointer(float maxDistance, float& x, float& y, float&
     // sdk/sdk.h provides the entity declarations required by trace.h.
     // Skip NPCs/players so Builder placement targets map geometry and props.
     CTraceFilterSkipNPCsAndPlayers filter(nullptr, 0);
-    trace_t trace{};
+    CGameTrace trace{};
     m_VR->m_Game->m_EngineTrace->TraceRay(
         ray,
-        MASK_STATICWORLD | CONTENTS_MOVEABLE,
+        STANDARD_TRACE_MASK,
         &filter,
         &trace);
 
