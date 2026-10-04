@@ -32,7 +32,7 @@ jobs:
       - name: Build Win32 Release
         shell: pwsh
         run: |
-          msbuild .\upstream-l4d2vr\l4d2vr.sln /m /p:Configuration=Release /p:Platform=Win32 /p:PostBuildEventUseInBuild=false
+          msbuild .\upstream-l4d2vr\l4d2vr.sln /m /p:Configuration=Release /p:Platform=x86 /p:PostBuildEventUseInBuild=false
 
       - name: Locate DLL
         shell: pwsh
