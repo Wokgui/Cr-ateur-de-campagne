@@ -45,6 +45,19 @@ class CommandParserTests(unittest.TestCase):
         self.assertEqual(len(scene["lights"]), 1)
         self.assertEqual(len(scene["props"]), 1)
 
+    def test_catalog_resolves_spoken_ambulance(self):
+        assets = [
+            {"path": "models/props_vehicles/ambulance.mdl", "category": "model", "source": "pak01_dir.vpk"},
+            {"path": "models/props_vehicles/cara_82hatchback.mdl", "category": "model", "source": "pak01_dir.vpk"},
+        ]
+        scene = apply_command({}, "mets une ambulance ici", [10, 20, 30], assets=assets)
+        self.assertEqual(scene["props"][0]["model"], "models/props_vehicles/ambulance.mdl")
+        self.assertEqual(scene["props"][0]["origin"], [10, 20, 30])
+
+    def test_unknown_catalog_prop_is_not_faked(self):
+        with self.assertRaises(ValueError):
+            apply_command({}, "mets une ambulance ici", [0, 0, 0], assets=[])
+
     def test_unknown_command_is_rejected(self):
         with self.assertRaises(ValueError):
             apply_command({}, "fais quelque chose")
