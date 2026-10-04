@@ -45,8 +45,31 @@ jobs:
           Copy-Item $dll.FullName artifact\d3d9.dll
           Get-FileHash artifact\d3d9.dll -Algorithm SHA256 | Format-List
 
-      - name: Upload Builder DLL
+      - name: Assemble easy-install package
+        shell: pwsh
+        run: |
+          $pkg = "package"
+          New-Item -ItemType Directory -Force $pkg | Out-Null
+          Copy-Item artifact\d3d9.dll "$pkg\d3d9.dll"
+          Copy-Item tools\install_builder_dll.ps1 "$pkg\install_builder_dll.ps1"
+          Copy-Item tools\start_builder.ps1 "$pkg\start_builder.ps1"
+          Copy-Item src "$pkg\src" -Recurse
+          @"
+          L4D2VR Campaign Builder
+
+          1. Ouvrez PowerShell dans ce dossier.
+          2. Installez la DLL :
+             .\install_builder_dll.ps1 -BuilderDll .\d3d9.dll
+          3. Lancez le Builder :
+             .\start_builder.ps1
+
+          L'installateur sauvegarde automatiquement votre d3d9.dll L4D2VR actuelle.
+          Pour restaurer la derniere sauvegarde :
+             .\install_builder_dll.ps1 -BuilderDll .\d3d9.dll -Restore
+          "@ | Set-Content "$pkg\LISEZ-MOI.txt" -Encoding UTF8
+
+      - name: Upload Builder package
         uses: actions/upload-artifact@v4
         with:
           name: L4D2VR-Campaign-Builder
-          path: artifact/d3d9.dll
+          path: package/**
