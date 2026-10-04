@@ -1,7 +1,7 @@
 #include "builder_client.h"
 #include "vr.h"
 #include "game.h"
-#include "sdk/sdk.h"
+#include "sdk/sdk.h"\n#include "sdk/trace.h"
 
 #include <Windows.h>
 #include <winhttp.h>
