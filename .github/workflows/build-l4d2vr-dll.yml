@@ -6,6 +6,7 @@ on:
     paths:
       - "integration/l4d2vr/**"
       - "tools/patch_l4d2vr_source.ps1"
+      - "tools/patch_l4d2vr_runtime.py"
       - ".github/workflows/build-l4d2vr-dll.yml"
 
 jobs:
@@ -25,6 +26,7 @@ jobs:
         shell: pwsh
         run: |
           .\tools\patch_l4d2vr_source.ps1 -L4D2VRSource .\upstream-l4d2vr
+          python .\tools\patch_l4d2vr_runtime.py .\upstream-l4d2vr
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
