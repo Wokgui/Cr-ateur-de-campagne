@@ -1,7 +1,7 @@
 #include "builder_client.h"
 #include "vr.h"
 #include "game.h"
-#include "sdk/trace.h"
+#include "sdk/sdk.h"
 
 #include <Windows.h>
 #include <winhttp.h>
@@ -32,9 +32,9 @@ bool BuilderClient::ResolvePointer(float maxDistance, float& x, float& y, float&
     Ray_t ray;
     ray.Init(origin, end);
 
-    // The existing L4D2VR SDK already exposes EngineTraceClient003 and the
-    // CTraceFilter used elsewhere by Source-style client traces.
-    CTraceFilter filter(nullptr, 0);
+    // sdk/sdk.h provides the entity declarations required by trace.h.
+    // Skip NPCs/players so Builder placement targets map geometry and props.
+    CTraceFilterSkipNPCsAndPlayers filter(nullptr, 0);
     trace_t trace{};
     m_VR->m_Game->m_EngineTrace->TraceRay(
         ray,
