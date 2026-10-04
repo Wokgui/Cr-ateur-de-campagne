@@ -174,6 +174,50 @@ def build_vmf(scene: dict) -> str:
         )
         next_entity += 1
 
+    for prop in scene.get("props", []):
+        pos = Vec3.from_list(prop["origin"])
+        entities.append(
+            entity(
+                next_entity,
+                "prop_physics",
+                {
+                    "origin": pos.source(),
+                    "angles": prop.get("angles", "0 0 0"),
+                    "model": prop["model"],
+                },
+            )
+        )
+        next_entity += 1
+
+    for weapon in scene.get("weapons", []):
+        pos = Vec3.from_list(weapon["origin"])
+        entities.append(
+            entity(
+                next_entity,
+                weapon.get("classname", "weapon_spawn"),
+                {
+                    "origin": pos.source(),
+                    "angles": weapon.get("angles", "0 0 0"),
+                    "weapon_selection": weapon.get("weapon_selection", "any_primary"),
+                },
+            )
+        )
+        next_entity += 1
+
+    for light in scene.get("lights", []):
+        pos = Vec3.from_list(light["origin"])
+        entities.append(
+            entity(
+                next_entity,
+                "light",
+                {
+                    "origin": pos.source(),
+                    "_light": light.get("brightness", "255 244 214 200"),
+                },
+            )
+        )
+        next_entity += 1
+
     for trigger in scene.get("horde_triggers", []):
         pos = Vec3.from_list(trigger["origin"])
         radius = float(trigger.get("radius", 96))
