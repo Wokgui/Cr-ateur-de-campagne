@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "L4D2 VR Campaign Builder Scene",
+  "type": "object",
+  "properties": {
+    "skyname": {"type": "string"},
+    "director_origin": {"type": "string"},
+    "rooms": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["origin", "size"],
+        "properties": {
+          "origin": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+          "size": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+          "wall_thickness": {"type": "number", "minimum": 1},
+          "material": {"type": "string"}
+        }
+      }
+    },
+    "doors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["origin"],
+        "properties": {
+          "origin": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+          "angles": {"type": "string"},
+          "model": {"type": "string"},
+          "targetname": {"type": "string"}
+        }
+      }
+    },
+    "horde_triggers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["origin"],
+        "properties": {
+          "origin": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+          "radius": {"type": "number", "minimum": 1},
+          "targetname": {"type": "string"}
+        }
+      }
+    }
+  }
+}
