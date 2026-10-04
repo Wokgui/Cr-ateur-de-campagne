@@ -1,0 +1,50 @@
+name: build-l4d2vr-builder-dll
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "integration/l4d2vr/**"
+      - "tools/patch_l4d2vr_source.ps1"
+      - ".github/workflows/build-l4d2vr-dll.yml"
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout upstream L4D2VR with DXVK
+        shell: pwsh
+        run: |
+          git clone --recurse-submodules https://github.com/sd805/l4d2vr.git upstream-l4d2vr
+          cd upstream-l4d2vr
+          git submodule update --init --recursive
+
+      - name: Apply Campaign Builder patch
+        shell: pwsh
+        run: |
+          .\tools\patch_l4d2vr_source.ps1 -L4D2VRSource .\upstream-l4d2vr
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build Win32 Release
+        shell: pwsh
+        run: |
+          msbuild .\upstream-l4d2vr\l4d2vr.sln /m /p:Configuration=Release /p:Platform=Win32 /p:PostBuildEventUseInBuild=false
+
+      - name: Locate DLL
+        shell: pwsh
+        run: |
+          $dll = Get-ChildItem .\upstream-l4d2vr -Recurse -Filter d3d9.dll | Select-Object -First 1
+          if (-not $dll) { throw "d3d9.dll was not produced" }
+          New-Item -ItemType Directory -Force artifact | Out-Null
+          Copy-Item $dll.FullName artifact\d3d9.dll
+          Get-FileHash artifact\d3d9.dll -Algorithm SHA256 | Format-List
+
+      - name: Upload Builder DLL
+        uses: actions/upload-artifact@v4
+        with:
+          name: L4D2VR-Campaign-Builder
+          path: artifact/d3d9.dll
