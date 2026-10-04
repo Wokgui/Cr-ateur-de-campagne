@@ -10,10 +10,10 @@ from vmf_generator import build_vmf
 
 
 class State:
-    def __init__(self, scene_path: Path, vmf_path: Path) -> None:
+    def __init__(self, scene_path: Path, vmf_path: Path, catalog_path: Path | None = None) -> None:
         self.scene_path = scene_path
         self.vmf_path = vmf_path
-        self.scene = self._load()
+        self.scene = self._load()\n        self.assets = load_catalog(catalog_path) if catalog_path and catalog_path.exists() else []
 
     def _load(self) -> dict:
         if self.scene_path.exists():
@@ -57,7 +57,7 @@ def make_handler(state: State):
                 command = str(data["command"])
                 pointer = data.get("pointer", [0, 0, 0])
                 selected_id = data.get("selected_id")
-                state.scene = apply_command(state.scene, command, pointer, selected_id)
+                state.scene = apply_command(state.scene, command, pointer, selected_id, state.assets)
                 state.save()
                 self._json(200, {"ok": True, "scene": state.scene})
             except (KeyError, ValueError, json.JSONDecodeError) as exc:
@@ -74,10 +74,10 @@ def main() -> None:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--scene", type=Path, default=Path("build/live_scene.json"))
-    parser.add_argument("--vmf", type=Path, default=Path("build/live_scene.vmf"))
+    parser.add_argument("--vmf", type=Path, default=Path("build/live_scene.vmf"))\n    parser.add_argument("--catalog", type=Path, default=Path("build/assets.json"))
     args = parser.parse_args()
 
-    state = State(args.scene, args.vmf)
+    state = State(args.scene, args.vmf, args.catalog)
     server = ThreadingHTTPServer((args.host, args.port), make_handler(state))
     print(f"VR bridge listening on http://{args.host}:{args.port}")
     server.serve_forever()
