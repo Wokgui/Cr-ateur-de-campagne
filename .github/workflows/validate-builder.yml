@@ -1,0 +1,26 @@
+name: validate-builder
+
+on:
+  push:
+    paths:
+      - "integration/l4d2vr/**"
+      - "tests/test_l4d2vr_integration.py"
+  pull_request:
+    paths:
+      - "integration/l4d2vr/**"
+      - "tests/test_l4d2vr_integration.py"
+
+jobs:
+  static-validation:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Builder C++ files and Source trace integration
+        shell: pwsh
+        run: |
+          $cpp = Get-Content integration/l4d2vr/builder_client.cpp -Raw
+          if ($cpp -notmatch 'EngineTrace') { throw "EngineTrace integration missing" }
+          if ($cpp -notmatch 'TraceRay') { throw "TraceRay call missing" }
+          if ($cpp -notmatch '127\.0\.0\.1') { throw "Loopback restriction missing" }
+          if ($cpp -notmatch 'WinHttp') { throw "WinHTTP client missing" }
+          Write-Host "Builder C++ static validation OK"

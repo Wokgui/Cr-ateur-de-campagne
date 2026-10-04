@@ -1,0 +1,47 @@
+{
+  "default_bindings": [
+    {
+      "controller_type": "oculus_touch",
+      "binding_url": "bindings_oculus_touch_builder.json"
+    }
+  ],
+  "actions": [
+    {
+      "name": "/actions/builder/in/ToggleBuilder",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/builder/in/Place",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/builder/in/Delete",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/builder/in/NextTool",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/builder/in/PrevTool",
+      "type": "boolean"
+    }
+  ],
+  "action_sets": [
+    {
+      "name": "/actions/builder",
+      "usage": "leftright"
+    }
+  ],
+  "localization": [
+    {
+      "language_tag": "en_us",
+      "/actions/builder": "Campaign Builder",
+      "/actions/builder/in/ToggleBuilder": "Toggle Builder",
+      "/actions/builder/in/Place": "Place selected object",
+      "/actions/builder/in/Delete": "Delete pointed object",
+      "/actions/builder/in/NextTool": "Next builder tool",
+      "/actions/builder/in/PrevTool": "Previous builder tool"
+    }
+  ]
+}
