@@ -5,7 +5,12 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$parent = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+if (Test-Path (Join-Path $PSScriptRoot "src\vr_bridge.py")) {
+    $RepoRoot = $PSScriptRoot
+} else {
+    $RepoRoot = $parent
+}
 $BuildDir = Join-Path $RepoRoot "build"
 New-Item -ItemType Directory -Force -Path $BuildDir | Out-Null
 
