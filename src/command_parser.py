@@ -5,6 +5,7 @@ import re
 import unicodedata
 import uuid
 from copy import deepcopy
+from asset_resolver import resolve_asset
 
 
 COLLECTIONS = ("rooms", "doors", "horde_triggers", "props", "weapons", "lights")
