@@ -1,0 +1,26 @@
+{
+  "skyname": "sky_day01_01",
+  "director_origin": "0 0 64",
+  "rooms": [
+    {
+      "origin": [0, 0, 0],
+      "size": [512, 512, 160],
+      "wall_thickness": 16,
+      "material": "DEV/DEV_MEASUREGENERIC01"
+    }
+  ],
+  "doors": [
+    {
+      "origin": [0, -248, 0],
+      "angles": "0 90 0",
+      "targetname": "rear_door"
+    }
+  ],
+  "horde_triggers": [
+    {
+      "origin": [0, -180, 0],
+      "radius": 64,
+      "targetname": "rear_door_horde"
+    }
+  ]
+}
