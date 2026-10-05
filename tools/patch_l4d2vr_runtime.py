@@ -24,6 +24,7 @@ block=r'''
     if (m_Builder && builderChord && !m_BuilderToggleLatch)
         m_Builder->Toggle();
     m_BuilderToggleLatch = builderChord;
+    if (m_Builder) m_Builder->Tick(m_BuilderTool);
 
     if (m_Builder && (m_Builder->IsEnabled() || builderChord)) {
         static const char *tools[] = {
@@ -41,6 +42,7 @@ block=r'''
             m_BuilderTool = (m_BuilderTool + n - 1) % n;
         if (PressedDigitalAction(m_ActionNextItem, true))
             m_BuilderTool = (m_BuilderTool + 1) % n;
+        m_Builder->Tick(m_BuilderTool);
         if (!builderChord && PressedDigitalAction(m_ActionPrimaryAttack, true))
             m_Builder->SendCommand(tools[m_BuilderTool]);
         if (!builderChord && PressedDigitalAction(m_ActionUse, true))
@@ -52,10 +54,12 @@ block=r'''
         m_Game->ClientCmd_Unrestricted("-use");
         m_Game->ClientCmd_Unrestricted("-reload");
         m_Game->ClientCmd_Unrestricted("-jump");
-        return;
-    }'''
+    } else {'''
 if "const bool builderChord" not in cs:
     if marker not in cs: raise RuntimeError('Builder insertion point missing')
     cs=cs.replace(marker,block+'\n'+marker,1)
+    hud='    if ((PressedDigitalAction(m_ShowHUD)'
+    if hud not in cs: raise RuntimeError('HUD insertion point missing')
+    cs=cs.replace(hud,'    } // End normal interaction actions; keep locomotion and HUD active.\n'+hud,1)
 c.write_text(cs,encoding="utf-8")
 print("Builder runtime integration applied using existing Quest/Oculus Touch actions")

@@ -8,14 +8,107 @@
 #include <winhttp.h>
 #include <sstream>
 #include <string>
+#include <algorithm>
+#include <cmath>
 
 #pragma comment(lib, "winhttp.lib")
 
-BuilderClient::BuilderClient(VR* vr) : m_VR(vr) {}
+// Prefix of Valve's VDebugOverlay003 interface; no virtual destructor slot.
+class BuilderOverlay {
+public:
+    virtual void AddEntityTextOverlay(int, int, float, int, int, int, int, const char*, ...) = 0;
+    virtual void AddBoxOverlay(const Vector&, const Vector&, const Vector&, const QAngle&, int, int, int, int, float) = 0;
+};
+
+BuilderClient::BuilderClient(VR* vr) : m_VR(vr)
+{
+    if (m_VR && m_VR->m_Game)
+        m_Overlay = m_VR->m_Game->GetInterface("engine.dll", "VDebugOverlay003");
+    Game::logMsg("Builder preview interface: %s", m_Overlay ? "ready" : "unavailable");
+    m_Worker = std::thread(&BuilderClient::Worker, this);
+}
+
+BuilderClient::~BuilderClient()
+{
+    { std::lock_guard<std::mutex> lock(m_Mutex); m_Stop = true; }
+    m_Wake.notify_one();
+    if (m_Worker.joinable()) m_Worker.join();
+}
+
+void BuilderClient::Worker()
+{
+    for (;;) {
+        Request item;
+        {
+            std::unique_lock<std::mutex> lock(m_Mutex);
+            m_Wake.wait(lock, [this] { return m_Stop || !m_Queue.empty(); });
+            if (m_Stop) return;
+            item = m_Queue.front(); m_Queue.pop_front();
+        }
+        item.ok = PostCommand(item.command, item.x, item.y, item.z);
+        {
+            std::lock_guard<std::mutex> lock(m_Mutex);
+            m_Results.push_back(item);
+        }
+    }
+}
+
+void BuilderClient::Draw(const Request& item, bool ghost)
+{
+    if (!m_Overlay) return;
+    Vector mins(-16, -4, 0), maxs(16, 4, 80);
+    switch (item.tool) {
+    case 1: mins = Vector(-16,-5,0); maxs = Vector(16,5,8); break;
+    case 2: mins = Vector(-6,-6,-6); maxs = Vector(6,6,6); break;
+    case 3: mins = Vector(-90,-40,0); maxs = Vector(90,40,55); break;
+    case 4: mins = Vector(-64,-64,0); maxs = Vector(64,64,128); break;
+    }
+    auto overlay = static_cast<BuilderOverlay*>(m_Overlay);
+    const Vector origin(item.x,item.y,item.z);
+    const QAngle angles(0,0,0);
+    overlay->AddBoxOverlay(origin, mins, maxs, angles, ghost ? 90 : 0, ghost ? 255 : 170, ghost ? 90 : 255, ghost ? 35 : 70, 0.09f);
+    // Door silhouette has a second small volume marking its handle.
+    if (item.tool == 0)
+        overlay->AddBoxOverlay(origin + Vector(11, -5, 40), Vector(-2,-2,-2), Vector(2,2,2), angles, 255,220,40,180,0.09f);
+}
+
+void BuilderClient::Tick(int tool)
+{
+    m_Tool = tool;
+    std::deque<Request> results;
+    { std::lock_guard<std::mutex> lock(m_Mutex); results.swap(m_Results); }
+    for (const auto& item : results) {
+        Game::logMsg("Builder command %s: %s", item.ok ? "saved" : "failed", item.command.c_str());
+        if (!item.ok) continue;
+        if (item.command == "supprime ca") {
+            auto nearest = m_Placed.end(); float best = 1e30f;
+            for (auto it = m_Placed.begin(); it != m_Placed.end(); ++it) {
+                const float dx=it->x-item.x, dy=it->y-item.y, dz=it->z-item.z;
+                const float d=dx*dx+dy*dy+dz*dz;
+                if (d<best) {best=d;nearest=it;}
+            }
+            if (nearest != m_Placed.end()) m_Placed.erase(nearest);
+        } else if (m_Placed.size() < 128) m_Placed.push_back(item);
+    }
+    if (!m_VR || !m_VR->m_Game || !m_VR->m_Game->m_EngineClient->IsInGame()) {
+        m_Placed.clear(); return;
+    }
+    const auto now = GetTickCount64();
+    if (now - m_LastDraw < 50) return; // 20 Hz, bounded and no network on this path.
+    m_LastDraw = now;
+    for (const auto& item : m_Placed) Draw(item, false);
+    if (!m_Enabled) return;
+    Request ghost; ghost.tool = tool;
+    if (ResolvePointer(4096,ghost.x,ghost.y,ghost.z)) {
+        Draw(ghost,true);
+        if (!m_PreviewLogged) { Game::logMsg("Builder in-map preview drawing active"); m_PreviewLogged = true; }
+    }
+}
 
 void BuilderClient::Toggle()
 {
     m_Enabled = !m_Enabled;
+    Game::logMsg("Builder mode: %s", m_Enabled ? "on" : "off");
 }
 
 bool BuilderClient::ResolvePointer(float maxDistance, float& x, float& y, float& z) const
@@ -82,6 +175,7 @@ bool BuilderClient::PostCommand(const std::string& command, float x, float y, fl
 
     if (!session)
         return false;
+    WinHttpSetTimeouts(session, 500, 500, 1000, 1000);
 
     // Hard-coded loopback by design: the Builder API must never be exposed
     // outside the local PC.
@@ -150,5 +244,12 @@ bool BuilderClient::SendCommand(const std::string& command, float maxDistance)
     if (!ResolvePointer(maxDistance, x, y, z))
         return false;
 
-    return PostCommand(command, x, y, z);
+    {
+        std::lock_guard<std::mutex> lock(m_Mutex);
+        if (m_Queue.size() >= 32) return false;
+        Request item; item.command = command; item.x=x; item.y=y; item.z=z; item.tool=m_Tool;
+        m_Queue.push_back(item);
+    }
+    m_Wake.notify_one();
+    return true;
 }

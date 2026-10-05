@@ -30,3 +30,6 @@ Restauration, jeu ferme :
 Si aucune DLL n'existait avant installation, il n'y a pas de sauvegarde a restaurer.
 
 Validation automatisee : Python, HTTP, persistance JSON/VMF, copie/restauration, empreinte DLL et lancement depuis un dossier avec espaces. Chargement dans L4D2, compilation Valve et interaction au casque restent a confirmer sur un PC equipe.
+
+Apercu en direct : en mode Builder, un volume vert suit le point vise. La porte est representee par un volume vertical et une poignee jaune. Apres sauvegarde, un volume cyan reste dans la carte pour les objets places pendant cette session. Il s'agit d'une representation de volume, pas encore du modele final. Les apercus sont limites a 128 objets par session ; la scene complete reste sauvegardee dans le JSON. Les apercus de session ne sont pas restaures apres changement de carte/redemarrage.
+Les commandes HTTP passent sur un worker dedie ; la visee et le rendu ne font aucun appel reseau. Aucune console ou fenetre n'est ouverte par les actions Builder. Locomotion et HUD restent actifs.
