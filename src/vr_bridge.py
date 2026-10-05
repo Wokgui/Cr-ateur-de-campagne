@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+from asset_resolver import load_catalog
 from command_parser import apply_command
 from vmf_generator import build_vmf
 
@@ -13,7 +15,8 @@ class State:
     def __init__(self, scene_path: Path, vmf_path: Path, catalog_path: Path | None = None) -> None:
         self.scene_path = scene_path
         self.vmf_path = vmf_path
-        self.scene = self._load()\n        self.assets = load_catalog(catalog_path) if catalog_path and catalog_path.exists() else []
+        self.scene = self._load()
+        self.assets = load_catalog(catalog_path) if catalog_path and catalog_path.exists() else []
 
     def _load(self) -> dict:
         if self.scene_path.exists():
@@ -41,7 +44,7 @@ def make_handler(state: State):
 
         def do_GET(self) -> None:
             if self.path == "/health":
-                self._json(200, {"ok": True})
+                self._json(200, {"ok": True, "service": "l4d2vr-builder", "pid": os.getpid()})
             elif self.path == "/scene":
                 self._json(200, state.scene)
             else:
@@ -74,7 +77,8 @@ def main() -> None:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--scene", type=Path, default=Path("build/live_scene.json"))
-    parser.add_argument("--vmf", type=Path, default=Path("build/live_scene.vmf"))\n    parser.add_argument("--catalog", type=Path, default=Path("build/assets.json"))
+    parser.add_argument("--vmf", type=Path, default=Path("build/live_scene.vmf"))
+    parser.add_argument("--catalog", type=Path, default=Path("build/assets.json"))
     args = parser.parse_args()
 
     state = State(args.scene, args.vmf, args.catalog)

@@ -10,7 +10,7 @@ def _cstring(f):
     while True:
         c=f.read(1)
         if not c: raise EOFError("Unexpected EOF in VPK tree")
-        if c==b"\\0": return b.decode("utf-8",errors="replace")
+        if c==b"\0": return b.decode("utf-8",errors="replace")
         b.extend(c)
 
 def read_vpk_index(path: Path):

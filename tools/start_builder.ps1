@@ -22,7 +22,7 @@ function Find-L4D2 {
     }
 
     $steamRoots = @(
-        "$env:ProgramFiles(x86)\Steam",
+        "${env:ProgramFiles(x86)}\Steam",
         "$env:ProgramFiles\Steam"
     ) | Where-Object { $_ -and (Test-Path $_) }
 
@@ -44,11 +44,14 @@ function Find-L4D2 {
 }
 
 function Find-Python {
-    foreach ($cmd in @("py", "python")) {
+    foreach ($cmd in @("python", "py")) {
         $found = Get-Command $cmd -ErrorAction SilentlyContinue
-        if ($found) { return $cmd }
+        if ($found) {
+            $actual = & $cmd -c "import sys; print(sys.executable if sys.version_info >= (3,12) else '')" 2>$null
+            if ($LASTEXITCODE -eq 0 -and $actual -and (Test-Path $actual)) { return $actual }
+        }
     }
-    throw "Python 3 est requis pour le prototype Builder."
+    throw "Python 3.12 ou plus recent est requis."
 }
 
 $GameRoot = Find-L4D2 $L4D2
@@ -63,13 +66,30 @@ if ($ReindexAssets -or -not (Test-Path $Catalog)) {
 }
 
 $bridgeArgs = @(
-    (Join-Path $RepoRoot "src\vr_bridge.py"),
-    "--catalog", $Catalog
+    ('"' + (Join-Path $RepoRoot "src\vr_bridge.py") + '"'),
+    "--catalog", ('"' + $Catalog + '"')
 )
 Write-Host "Demarrage du pont Builder local..."
-$bridge = Start-Process -FilePath $Python -ArgumentList $bridgeArgs -WorkingDirectory $RepoRoot -PassThru
+try {
+    $existing = Invoke-RestMethod -Uri "http://127.0.0.1:8765/health" -TimeoutSec 1
+} catch { $existing = $null }
+if ($existing) { throw "Le port 8765 est deja utilise. Arretez le pont existant avant de relancer." }
+$bridge = Start-Process -FilePath $Python -ArgumentList $bridgeArgs -WorkingDirectory $RepoRoot -WindowStyle Hidden -PassThru
 
-Start-Sleep -Milliseconds 800
+$ready = $false
+for ($attempt = 0; $attempt -lt 30; $attempt++) {
+    Start-Sleep -Milliseconds 200
+    $bridge.Refresh()
+    if ($bridge.HasExited) { throw "Le processus Python s'est arrete." }
+    try {
+        $probe = Invoke-RestMethod -Uri "http://127.0.0.1:8765/health" -TimeoutSec 1
+        if ($probe.ok -and $probe.service -eq "l4d2vr-builder" -and $probe.pid -eq $bridge.Id) { $ready = $true; break }
+    } catch {}
+}
+if (-not $ready) {
+    Stop-Process -Id $bridge.Id -Force
+    throw "Le pont Builder n'a pas demarre."
+}
 try {
     $health = Invoke-RestMethod -Uri "http://127.0.0.1:8765/health" -TimeoutSec 3
     Write-Host "Builder bridge: OK (PID $($bridge.Id))"

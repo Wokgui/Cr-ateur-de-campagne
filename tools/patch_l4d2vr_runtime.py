@@ -14,21 +14,18 @@ cs=c.read_text(encoding="utf-8-sig")
 if '#include "builder_client.h"' not in cs: cs=cs.replace('#include "vr.h"','#include "vr.h"\n#include "builder_client.h"',1)
 if "m_Builder = new BuilderClient" not in cs: cs=cs.replace("m_Game = game;","m_Game = game;\n    m_Builder = new BuilderClient(this);",1)
 
-marker='vr::VROverlay()->SetOverlayFlag(m_HUDHandle, vr::VROverlayFlags_MakeOverlaysInteractiveIfVisible, false);'
+marker='    if (PressedDigitalAction(m_ActionPrimaryAttack))'
 block=r'''
 
-    // Quest/Oculus Touch: touch the right stick up + down cannot happen physically,
-    // so use both inventory edge actions in the same frame as a deliberate Builder chord.
-    // This keeps the normal manifest/bindings untouched and Builder cannot steal controls
-    // until explicitly enabled.
+    // A + B on the right Quest controller toggles Builder.
     const bool builderChord =
-        PressedDigitalAction(m_ActionPrevItem) &&
-        PressedDigitalAction(m_ActionNextItem);
+        PressedDigitalAction(m_ActionJump) &&
+        PressedDigitalAction(m_ActionUse);
     if (m_Builder && builderChord && !m_BuilderToggleLatch)
         m_Builder->Toggle();
     m_BuilderToggleLatch = builderChord;
 
-    if (m_Builder && m_Builder->IsEnabled()) {
+    if (m_Builder && (m_Builder->IsEnabled() || builderChord)) {
         static const char *tools[] = {
             "mets une porte ici",
             "mets une arme ici",
@@ -44,9 +41,9 @@ block=r'''
             m_BuilderTool = (m_BuilderTool + n - 1) % n;
         if (PressedDigitalAction(m_ActionNextItem, true))
             m_BuilderTool = (m_BuilderTool + 1) % n;
-        if (PressedDigitalAction(m_ActionPrimaryAttack, true))
+        if (!builderChord && PressedDigitalAction(m_ActionPrimaryAttack, true))
             m_Builder->SendCommand(tools[m_BuilderTool]);
-        if (PressedDigitalAction(m_ActionUse, true))
+        if (!builderChord && PressedDigitalAction(m_ActionUse, true))
             m_Builder->SendCommand("supprime ca");
 
         // Stop held gameplay actions when entering Builder.
@@ -54,8 +51,11 @@ block=r'''
         m_Game->ClientCmd_Unrestricted("-attack2");
         m_Game->ClientCmd_Unrestricted("-use");
         m_Game->ClientCmd_Unrestricted("-reload");
+        m_Game->ClientCmd_Unrestricted("-jump");
         return;
     }'''
-if "const bool builderChord" not in cs: cs=cs.replace(marker,marker+block,1)
+if "const bool builderChord" not in cs:
+    if marker not in cs: raise RuntimeError('Builder insertion point missing')
+    cs=cs.replace(marker,block+'\n'+marker,1)
 c.write_text(cs,encoding="utf-8")
 print("Builder runtime integration applied using existing Quest/Oculus Touch actions")

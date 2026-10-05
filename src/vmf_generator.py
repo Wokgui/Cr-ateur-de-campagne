@@ -154,6 +154,15 @@ def build_vmf(scene: dict) -> str:
         )
         solids.extend(created)
 
+    if scene.get("rooms"):
+        first = Vec3.from_list(scene["rooms"][0].get("origin", [0, 0, 0]))
+        for offset in ((-24, -24), (24, -24), (-24, 24), (24, 24)):
+            pos = Vec3(first.x + offset[0], first.y + offset[1], first.z + 16)
+            entities.append(entity(next_entity, "info_survivor_position", {"origin": pos.source(), "angles": "0 0 0"}))
+            next_entity += 1
+        entities.append(entity(next_entity, "info_player_start", {"origin": Vec3(first.x, first.y, first.z + 16).source()}))
+        next_entity += 1
+
     for door in scene.get("doors", []):
         pos = Vec3.from_list(door["origin"])
         entities.append(

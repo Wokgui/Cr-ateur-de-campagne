@@ -1,7 +1,7 @@
 param(
     [Parameter(Mandatory=$true)][string]$Vmf,
     [string]$MapName = "vr_generated",
-    [string]$L4D2 = "$env:ProgramFiles(x86)\Steam\steamapps\common\Left 4 Dead 2"
+    [string]$L4D2 = "${env:ProgramFiles(x86)}\Steam\steamapps\common\Left 4 Dead 2"
 )
 
 $ErrorActionPreference = "Stop"

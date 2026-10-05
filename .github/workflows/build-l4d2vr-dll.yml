@@ -5,6 +5,10 @@ on:
   push:
     paths:
       - "integration/l4d2vr/**"
+      - "src/**"
+      - "tools/**"
+      - "tests/**"
+      - "docs/**"
       - "tools/patch_l4d2vr_source.ps1"
       - "tools/patch_l4d2vr_runtime.py"
       - ".github/workflows/build-l4d2vr-dll.yml"
@@ -15,11 +19,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Test Python runtime
+        run: |
+          python -m compileall -q src
+          python -m unittest discover -s tests -v
       - name: Checkout upstream L4D2VR with DXVK
         shell: pwsh
         run: |
           git clone --recurse-submodules https://github.com/sd805/l4d2vr.git upstream-l4d2vr
           cd upstream-l4d2vr
+          git checkout 628820257ae755ae120b8f86740a145b6fb74f51
           git submodule update --init --recursive
 
       - name: Apply Campaign Builder patch
@@ -39,8 +51,12 @@ jobs:
       - name: Locate DLL
         shell: pwsh
         run: |
-          $dll = Get-ChildItem .\upstream-l4d2vr -Recurse -Filter d3d9.dll | Select-Object -First 1
-          if (-not $dll) { throw "d3d9.dll was not produced" }
+          $candidates = @(Get-ChildItem .\upstream-l4d2vr -Recurse -Filter d3d9.dll)
+          if ($candidates.Count -ne 1) { throw "Expected exactly one compiled d3d9.dll, found $($candidates.Count)" }
+          $dll = $candidates[0]
+          $bytes = [IO.File]::ReadAllBytes($dll.FullName)
+          $pe = [BitConverter]::ToInt32($bytes, 0x3c)
+          if ([BitConverter]::ToUInt16($bytes, $pe + 4) -ne 0x14c) { throw "DLL is not x86" }
           New-Item -ItemType Directory -Force artifact | Out-Null
           Copy-Item $dll.FullName artifact\d3d9.dll
           Get-FileHash artifact\d3d9.dll -Algorithm SHA256 | Format-List
@@ -52,21 +68,14 @@ jobs:
           New-Item -ItemType Directory -Force $pkg | Out-Null
           Copy-Item artifact\d3d9.dll "$pkg\d3d9.dll"
           Copy-Item tools\install_builder_dll.ps1 "$pkg\install_builder_dll.ps1"
+          (Get-FileHash artifact\d3d9.dll -Algorithm SHA256).Hash.ToLowerInvariant() | Set-Content "$pkg\d3d9.dll.sha256" -Encoding ASCII
+          Copy-Item tools\compile_l4d2_map.ps1 "$pkg\compile_l4d2_map.ps1"
+          Copy-Item docs\PC_TEST.md "$pkg\LISEZ-MOI.txt"
           Copy-Item tools\start_builder.ps1 "$pkg\start_builder.ps1"
           Copy-Item src "$pkg\src" -Recurse
-          @"
-          L4D2VR Campaign Builder
-
-          1. Ouvrez PowerShell dans ce dossier.
-          2. Installez la DLL :
-             .\install_builder_dll.ps1 -BuilderDll .\d3d9.dll
-          3. Lancez le Builder :
-             .\start_builder.ps1
-
-          L'installateur sauvegarde automatiquement votre d3d9.dll L4D2VR actuelle.
-          Pour restaurer la derniere sauvegarde :
-             .\install_builder_dll.ps1 -BuilderDll .\d3d9.dll -Restore
-          "@ | Set-Content "$pkg\LISEZ-MOI.txt" -Encoding UTF8
+      - name: Smoke test standalone Windows package
+        shell: pwsh
+        run: .\tools\test_windows_package.ps1 -Package .\package
 
       - name: Upload Builder package
         uses: actions/upload-artifact@v4
