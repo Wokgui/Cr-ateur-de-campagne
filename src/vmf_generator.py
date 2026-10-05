@@ -39,14 +39,21 @@ def plane(a: Vec3, b: Vec3, c: Vec3) -> str:
 
 
 def side(side_id: int, p1: Vec3, p2: Vec3, p3: Vec3, material: str) -> str:
+    # Texture axes must lie in the face, including vertical walls.
+    if p1.x == p2.x == p3.x:
+        uaxis, vaxis = "[0 1 0 0] 0.25", "[0 0 -1 0] 0.25"
+    elif p1.y == p2.y == p3.y:
+        uaxis, vaxis = "[1 0 0 0] 0.25", "[0 0 -1 0] 0.25"
+    else:
+        uaxis, vaxis = "[1 0 0 0] 0.25", "[0 -1 0 0] 0.25"
     return block(
         "side",
         [
             kv("id", side_id, 2),
             kv("plane", plane(p1, p2, p3), 2),
             kv("material", material, 2),
-            kv("uaxis", "[1 0 0 0] 0.25", 2),
-            kv("vaxis", "[0 -1 0 0] 0.25", 2),
+            kv("uaxis", uaxis, 2),
+            kv("vaxis", vaxis, 2),
             kv("rotation", "0", 2),
             kv("lightmapscale", "16", 2),
             kv("smoothing_groups", "0", 2),
@@ -77,10 +84,10 @@ def box_solid(
     planes = [
         (p000, p010, p011),
         (p100, p101, p111),
-        (p000, p100, p101),
-        (p010, p011, p111),
-        (p000, p010, p110),
-        (p001, p101, p111),
+        (p000, p101, p100),
+        (p010, p111, p011),
+        (p000, p110, p010),
+        (p001, p111, p101),
     ]
 
     sides: list[str] = []
