@@ -58,7 +58,7 @@ block=r'''
 if "const bool builderChord" not in cs:
     if marker not in cs: raise RuntimeError('Builder insertion point missing')
     cs=cs.replace(marker,block+'\n'+marker,1)
-    hud='    if ((PressedDigitalAction(m_ShowHUD)'
+    hud='    bool isControllerVertical ='
     if hud not in cs: raise RuntimeError('HUD insertion point missing')
     cs=cs.replace(hud,'    } // End normal interaction actions; keep locomotion and HUD active.\n'+hud,1)
 c.write_text(cs,encoding="utf-8")
