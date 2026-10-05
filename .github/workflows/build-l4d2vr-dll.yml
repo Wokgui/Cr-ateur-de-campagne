@@ -2,6 +2,13 @@ name: build-l4d2vr-builder-dll
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - "integration/l4d2vr/**"
+      - "tools/**"
+      - "src/**"
+      - "tests/**"
+      - ".github/workflows/build-l4d2vr-dll.yml"
   push:
     paths:
       - "integration/l4d2vr/**"
